@@ -83,7 +83,11 @@ export async function createBill(billPayload, items) {
   }));
 
   const { error: itemErr } = await supabase.from('bill_items').insert(itemRows);
-  if (itemErr) throw new Error(itemErr.message);
+  if (itemErr) {
+    // Roll back the bill so we don't leave an orphaned, item-less bill behind.
+    await supabase.from('bills').delete().eq('id', bill.id);
+    throw new Error(itemErr.message);
+  }
 
   return bill;
 }

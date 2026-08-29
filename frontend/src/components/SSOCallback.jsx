@@ -124,9 +124,21 @@ export default function SSOCallback() {
           throw new Error(authErr.message);
         }
 
-        // Navigate client-side (no full page reload) so the app
-        // never has to re-fetch the session from storage on mount,
-        // which is what caused a race back to the landing page.
+        // Don't trust setSession()'s resolution timing alone — confirm
+        // the session is actually readable (and that AuthProvider's
+        // onAuthStateChange listener has had a chance to fire and update
+        // context) before navigating. This avoids a race where RequireAuth
+        // still sees `user === null` on the very next render and bounces
+        // back out to the landing page right after a successful login.
+        const { data: { session: confirmedSession } } =
+          await supabase.auth.getSession();
+
+        if (!confirmedSession) {
+          throw new Error(
+            'Session could not be confirmed. Please try signing in again.'
+          );
+        }
+
         navigate(redirect, { replace: true });
       })
       .catch((err) => {

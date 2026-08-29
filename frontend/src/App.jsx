@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { supabase } from './utils/supabase';
 
 import Shell          from './components/Shell';
 import SSOCallback    from './components/SSOCallback';
@@ -19,8 +21,28 @@ const LANDING_URL =
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [checking, setChecking] = useState(false);
+  const [confirmedAbsent, setConfirmedAbsent] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    // If context says there's no user, don't trust it blindly — it may
+    // just not have caught up yet with a session that was set moments
+    // ago (e.g. right after the SSO callback). Do one direct check
+    // against Supabase before redirecting out to the landing page.
+    if (!loading && !user) {
+      let cancelled = false;
+      setChecking(true);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (cancelled) return;
+        setChecking(false);
+        if (!session) setConfirmedAbsent(true);
+      });
+      return () => { cancelled = true; };
+    }
+    setConfirmedAbsent(false);
+  }, [loading, user]);
+
+  if (loading || (!user && checking)) {
     return (
       <div
         style={{
@@ -36,7 +58,7 @@ function RequireAuth({ children }) {
     );
   }
 
-  if (!user) {
+  if (!user && confirmedAbsent) {
     // Always return from the portal through the SSO callback.
     // Preserve the page the user originally requested.
     const redirect =
@@ -49,6 +71,8 @@ function RequireAuth({ children }) {
     window.location.replace(`${LANDING_URL}/login?callback=${callback}`);
     return null;
   }
+
+  if (!user) return null; // waiting on the direct check above
 
   return <Shell>{children}</Shell>;
 }
