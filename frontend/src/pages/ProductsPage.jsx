@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../utils/api';
 
-const EMPTY = { name: '', unit: '', rate: '' };
+const EMPTY = { name: '', unit: '' };
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -22,18 +22,16 @@ export default function ProductsPage() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setEditing(null); setForm(EMPTY); setModal(true); };
-  const openEdit = (p) => { setEditing(p); setForm({ name: p.name, unit: p.unit || '', rate: p.rate }); setModal(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ name: p.name, unit: p.unit || '' }); setModal(true); };
   const closeModal = () => { setModal(false); setEditing(null); setForm(EMPTY); };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const save = async () => {
     if (!form.name.trim())          return toast.error('Product name is required');
-    if (!form.rate || isNaN(form.rate) || Number(form.rate) <= 0)
-                                    return toast.error('Valid rate is required');
     setSaving(true);
     try {
-      const payload = { name: form.name.trim(), unit: form.unit.trim(), rate: Number(form.rate) };
+      const payload = { name: form.name.trim(), unit: form.unit.trim() };
       if (editing) {
         await updateProduct(editing.id, payload);
         toast.success('Product updated');
@@ -91,7 +89,6 @@ export default function ProductsPage() {
                 <tr>
                   <th>Name</th>
                   <th>Unit</th>
-                  <th style={{ textAlign: 'right' }}>Rate (₹)</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -100,7 +97,6 @@ export default function ProductsPage() {
                   <tr key={p.id}>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{p.unit || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'Manrope' }}>₹{Number(p.rate).toFixed(2)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>Edit</button>
@@ -130,17 +126,11 @@ export default function ProductsPage() {
 
             <div className="form-group">
               <label className="form-label">Product Name *</label>
-              <input className="form-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Toor Dal" autoFocus />
+              <input className="form-input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. M8 Hex Nut" autoFocus />
             </div>
-            <div className="form-row form-row-2">
-              <div className="form-group">
-                <label className="form-label">Unit</label>
-                <input className="form-input" value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="e.g. kg, pcs, bag" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Rate (₹) *</label>
-                <input className="form-input" type="number" min="0" step="0.01" value={form.rate} onChange={e => set('rate', e.target.value)} placeholder="0.00" />
-              </div>
+            <div className="form-group">
+              <label className="form-label">Unit</label>
+              <input className="form-input" value={form.unit} onChange={e => set('unit', e.target.value)} placeholder="e.g. pcs, box, kg" />
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>

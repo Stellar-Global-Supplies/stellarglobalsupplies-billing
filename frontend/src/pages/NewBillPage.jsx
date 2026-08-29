@@ -44,8 +44,8 @@ export default function NewBillPage() {
         name: p.name,
         unit: p.unit || '',
         qty: 1,
-        rate: Number(p.rate),
-        amount: Number(p.rate),
+        rate: Number(p.rate) || 0,
+        amount: Number(p.rate) || 0,
       }];
     });
     setSearch('');
@@ -73,6 +73,8 @@ export default function NewBillPage() {
     if (items.length === 0) return toast.error('Add at least one product');
     const invalidQty = items.find(i => !i.qty || i.qty <= 0);
     if (invalidQty) return toast.error(`Set a valid quantity for "${invalidQty.name}"`);
+    const invalidRate = items.find(i => !i.rate || i.rate <= 0);
+    if (invalidRate) return toast.error(`Set a rate for "${invalidRate.name}"`);
 
     setSaving(true);
     try {
@@ -162,7 +164,6 @@ export default function NewBillPage() {
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
                       {p.unit && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.unit}</div>}
                     </div>
-                    <div style={{ fontWeight: 700, color: 'var(--brand-teal-dark)', fontSize: 14 }}>₹{Number(p.rate).toFixed(2)}</div>
                   </div>
                 ))}
               </div>
@@ -180,7 +181,7 @@ export default function NewBillPage() {
                       onClick={() => addProduct(p)}
                       style={{ borderRadius: 99 }}
                     >
-                      {p.name} — ₹{Number(p.rate).toFixed(2)}
+                      {p.name}{p.unit ? ` (${p.unit})` : ''}
                     </button>
                   ))}
                 </div>
