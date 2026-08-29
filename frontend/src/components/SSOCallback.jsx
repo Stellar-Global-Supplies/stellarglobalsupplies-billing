@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 
 const EXCHANGE_FN =
@@ -29,6 +30,7 @@ export default function SSOCallback() {
   const [status, setStatus] = useState('Verifying your session…');
   const [error, setError] = useState(null);
   const exchanged = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (exchanged.current) return;
@@ -122,9 +124,10 @@ export default function SSOCallback() {
           throw new Error(authErr.message);
         }
 
-        // Give Supabase a moment to persist the session before
-        // navigating away from the callback page.
-        window.location.replace(redirect);
+        // Navigate client-side (no full page reload) so the app
+        // never has to re-fetch the session from storage on mount,
+        // which is what caused a race back to the landing page.
+        navigate(redirect, { replace: true });
       })
       .catch((err) => {
         setError(
