@@ -13,7 +13,8 @@ import BillDetailPage from './pages/BillDetailPage';
 
 import './styles/globals.css';
 
-const LANDING_URL = process.env.REACT_APP_LANDING_URL || 'https://apps.stellarglobalsupplies.com';
+const LANDING_URL =
+  process.env.REACT_APP_LANDING_URL || 'https://apps.stellarglobalsupplies.com';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -21,14 +22,30 @@ function RequireAuth({ children }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F7FB' }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#F4F7FB',
+        }}
+      >
         <span className="spinner spinner-dark" style={{ width: 32, height: 32 }} />
       </div>
     );
   }
 
   if (!user) {
-    const callback = encodeURIComponent(window.location.origin + location.pathname);
+    // Always return from the portal through the SSO callback.
+    // Preserve the page the user originally requested.
+    const redirect =
+      location.pathname + location.search + location.hash;
+
+    const callback = encodeURIComponent(
+      `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
+    );
+
     window.location.replace(`${LANDING_URL}/login?callback=${callback}`);
     return null;
   }
@@ -44,21 +61,71 @@ export default function App() {
           position="top-center"
           toastOptions={{
             duration: 3500,
-            style: { fontFamily: 'Inter, sans-serif', fontSize: 14, borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,.12)' },
-            success: { iconTheme: { primary: '#00B98E', secondary: '#fff' } },
+            style: {
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 14,
+              borderRadius: 10,
+              boxShadow: '0 4px 20px rgba(0,0,0,.12)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#00B98E',
+                secondary: '#fff',
+              },
+            },
           }}
         />
+
         <Routes>
           {/* Public */}
-          <Route path="/login"    element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<SSOCallback />} />
 
           {/* Protected */}
-          <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
-          <Route path="/bills" element={<RequireAuth><BillsPage /></RequireAuth>} />
-          <Route path="/bills/new" element={<RequireAuth><NewBillPage /></RequireAuth>} />
-          <Route path="/bills/:id" element={<RequireAuth><BillDetailPage /></RequireAuth>} />
-          <Route path="/products" element={<RequireAuth><ProductsPage /></RequireAuth>} />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <DashboardPage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/bills"
+            element={
+              <RequireAuth>
+                <BillsPage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/bills/new"
+            element={
+              <RequireAuth>
+                <NewBillPage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/bills/:id"
+            element={
+              <RequireAuth>
+                <BillDetailPage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/products"
+            element={
+              <RequireAuth>
+                <ProductsPage />
+              </RequireAuth>
+            }
+          />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
