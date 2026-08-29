@@ -26,7 +26,7 @@ export default function LoginPage() {
     })();
 
     const callback = encodeURIComponent(
-      `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
+      `${window.location.origin}/sso-callback?redirect=${encodeURIComponent(
         safeRedirect
       )}`
     );

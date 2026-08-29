@@ -65,7 +65,7 @@ function RequireAuth({ children }) {
       location.pathname + location.search + location.hash;
 
     const callback = encodeURIComponent(
-      `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
+      `${window.location.origin}/sso-callback?redirect=${encodeURIComponent(redirect)}`
     );
 
     window.location.replace(`${LANDING_URL}/login?callback=${callback}`);
@@ -103,7 +103,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/callback" element={<SSOCallback />} />
+          <Route path="/sso-callback" element={<SSOCallback />} />
 
           {/* Protected */}
           <Route
