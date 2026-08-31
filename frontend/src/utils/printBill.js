@@ -24,8 +24,6 @@
  * — no default-print-service configuration needed anywhere in Android.
  */
 
-const FALLBACK_TIMEOUT_MS = 1500;
-
 /**
  * Fallback HTML receipt — used only if the Bluetooth Print deep-link fails
  * to launch (e.g. app not installed, or we're not on Android/mobile at all,
@@ -180,9 +178,17 @@ function isAndroid() {
 }
 
 /**
- * printBill — main entry point. Prefers the direct Bluetooth Print app
- * deep-link on Android; falls back to the browser print dialog elsewhere
- * or if the deep-link doesn't seem to have launched anything.
+ * printBill — main entry point. Launches the Bluetooth Print app directly
+ * on Android via the deep-link. We do NOT auto-fallback on a timer:
+ * Android/Chrome commonly shows its own "Open in Bluetooth Print?"
+ * confirmation before switching apps, which needs a user tap and doesn't
+ * reliably flip document.hidden within a short window — a timer-based
+ * fallback races that dialog and can end up firing the old browser
+ * print dialog on top of it, which looked exactly like the original bug
+ * (defaulting to the OS print dialog instead of opening the app).
+ *
+ * If the app truly isn't installed, use printBillViaBrowser() instead
+ * (wired to a manual "trouble printing?" link in the UI).
  */
 export function printBill(bill, items) {
   if (!isAndroid()) {
@@ -194,26 +200,15 @@ export function printBill(bill, items) {
 
   const responseUrl = `${window.location.origin}/api/print-bill?id=${encodeURIComponent(bill.id)}`;
   const btUrl = `my.bluetoothprint.scheme://${responseUrl}`;
-
-  // If the Bluetooth Print app isn't installed, Android will do nothing
-  // (no app registered for the scheme) rather than throwing — the page
-  // just stays put. We detect that by checking whether the tab is still
-  // visible/focused shortly after attempting the deep-link: if the OS
-  // switched away to launch the app, the page will have been backgrounded.
-  let handedOff = false;
-  const onVisibilityChange = () => {
-    if (document.hidden) handedOff = true;
-  };
-  document.addEventListener('visibilitychange', onVisibilityChange);
-
   window.location.href = btUrl;
+}
 
-  setTimeout(() => {
-    document.removeEventListener('visibilitychange', onVisibilityChange);
-    if (!handedOff) {
-      // Bluetooth Print app likely isn't installed on this device —
-      // fall back so the user can still get a receipt.
-      printBillFallbackHtml(bill, items);
-    }
-  }, FALLBACK_TIMEOUT_MS);
+/**
+ * printBillViaBrowser — explicit manual fallback for when the Bluetooth
+ * Print app isn't installed (or the deep-link didn't work for some other
+ * reason). Wire this to a small secondary "trouble printing?" link next
+ * to the main Print button — never call it automatically.
+ */
+export function printBillViaBrowser(bill, items) {
+  printBillFallbackHtml(bill, items);
 }

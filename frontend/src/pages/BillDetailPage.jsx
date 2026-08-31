@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchBillById } from '../utils/api';
-import { printBill } from '../utils/printBill';
+import { printBill, printBillViaBrowser } from '../utils/printBill';
 
 const fmt = (n) => `₹${Number(n).toFixed(2)}`;
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -58,6 +58,16 @@ export default function BillDetailPage() {
             Reprint
           </button>
         </div>
+      </div>
+
+      <div style={{ textAlign: 'right', marginTop: -12, marginBottom: 12 }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ fontSize: 12, color: 'var(--text-muted)' }}
+          onClick={() => printBillViaBrowser(bill, items)}
+        >
+          Trouble printing? Print via browser instead
+        </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
