@@ -4,8 +4,8 @@
 ## Stack
 - React (CRA) — frontend
 - Supabase — database + auth
-- Cloudflare Pages — hosting
-- RawBT thermal printing via browser print dialog
+- Cloudflare Pages — hosting (+ a Pages Function for the print API)
+- Bluetooth Print (mate.bluetoothprint) thermal printing via direct app deep-link
 
 ---
 
@@ -62,13 +62,29 @@ No additional backend needed. Uses the same Supabase project and `sso-exchange` 
 
 ---
 
-## 5. RawBT Thermal Printing
+## 5. Thermal Printing — "Bluetooth Print" app (direct deep-link)
 
-1. Install **RawBT** app on the Android device connected to the thermal printer
-2. Set RawBT as the default print service in Android Settings → Printing
-3. When "Save & Print" or "Reprint" is tapped, the app opens a print window and calls `window.print()`
-4. RawBT intercepts it and sends to the thermal printer automatically
-5. Works with 58mm and 80mm thermal printers
+Printing no longer depends on Android's print dialog or which app is set
+as the system default print service — it launches the printer app directly.
+
+1. Install **Bluetooth Print** on the Android device connected to the thermal
+   printer: https://play.google.com/store/apps/details?id=mate.bluetoothprint
+2. Open the app → **Menu → Browser Print** → enable the toggle
+3. Pair the Bluetooth/USB thermal printer inside the app once
+4. In the Cloudflare Pages project → **Settings → Environment variables**,
+   add (Production **and** Preview):
+   - `SUPABASE_URL` — your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY` — Settings → API → `service_role` key (keep secret — this is server-side only, used by `functions/api/print-bill.js`)
+5. When **Print** / **Reprint** is tapped:
+   - The app navigates to `my.bluetoothprint.scheme://<origin>/api/print-bill?id=<bill_id>`
+   - Android matches that custom scheme straight to the Bluetooth Print app and opens it — no dialog, no default-app setting involved
+   - Bluetooth Print itself fetches `/api/print-bill?id=...` (a Cloudflare Pages Function), which returns the receipt as structured JSON, and sends it straight to the paired thermal printer
+6. If Bluetooth Print isn't installed (e.g. testing on desktop or iOS), it automatically falls back to the old browser print-dialog flow so a receipt can still be produced/printed manually
+7. Works with 58mm and 80mm thermal printers (Bluetooth or USB via the phone)
+
+**Testing tip:** you can hit `/api/print-bill?id=<a-real-bill-id>` directly in
+a browser to confirm it returns clean JSON before testing the deep-link on
+the phone.
 
 ---
 
