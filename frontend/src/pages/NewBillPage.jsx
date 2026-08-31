@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { fetchProducts, createBill } from '../utils/api';
+import { printBill } from '../utils/printBill';
 
 const fmt = (n) => `₹${Number(n).toFixed(2)}`;
 
@@ -87,10 +88,15 @@ export default function NewBillPage() {
       };
       const bill = await createBill(billPayload, items);
       if (andPrint) {
-        toast.success('Bill created — tap Print to send to the printer');
-      } else {
-        toast.success('Bill created!');
+        try {
+          await printBill(bill, items);
+        } catch (err) {
+          if (err?.name !== 'AbortError') {
+            toast.error('Bill saved but share sheet failed. Use Reprint from the bill page.');
+          }
+        }
       }
+      toast.success('Bill created!');
       navigate(`/bills/${bill.id}`);
     } catch (e) {
       toast.error(e.message);
