@@ -7,9 +7,9 @@
  *   2. Calls navigator.share({ text }) — opens the OS share sheet.
  *   3. User picks iPrint (com.frogtosea.iprint) from the sheet.
  *   4. iPrint receives the text, displays it in its print preview, and
- *      the user taps Print inside iPrint to send to the thermal printer.
+ *      the user taps Print inside iPrint to send it to the thermal printer.
  *
- * Why text not image:
+ * Why text not PDF/image:
  *   iPrint explicitly accepts ACTION_SEND / text/plain shares. Sharing text
  *   lands directly in iPrint's print screen — no extra steps inside the app.
  *
@@ -17,6 +17,9 @@
  *   - Chrome on Android (all modern versions)
  *   - Safari on iOS 12.1+
  *   - NOT supported on most desktop browsers (falls back to clipboard copy)
+ *
+ * Nothing is saved/downloaded to the device — the text only exists in
+ * memory for the duration of the share call.
  *
  * Returns a Promise. Wire with an async onClick — see BillDetailPage.
  * AbortError (user dismissed share sheet) should be caught and ignored.
@@ -57,8 +60,8 @@ function divider(char = '-') {
 
 function center(str) {
   const s = String(str).slice(0, COL_WIDTH);
-  const pad = Math.floor((COL_WIDTH - s.length) / 2);
-  return ' '.repeat(pad) + s;
+  const padLen = Math.floor((COL_WIDTH - s.length) / 2);
+  return ' '.repeat(Math.max(padLen, 0)) + s;
 }
 
 function buildReceiptText(bill, items) {
@@ -125,6 +128,9 @@ function buildReceiptText(bill, items) {
  * printBill — formats the receipt as plain text and opens the OS share sheet.
  * The user picks iPrint from the sheet; iPrint shows a print preview and
  * sends it to the paired thermal printer.
+ *
+ * Nothing is saved/downloaded — the text is only held in memory for the
+ * duration of the share call.
  *
  * On desktop browsers that don't support navigator.share, falls back to
  * copying the receipt text to the clipboard and showing an alert.
