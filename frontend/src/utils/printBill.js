@@ -1,24 +1,32 @@
 /**
- * printBill — shares the receipt as plain text via the Web Share API.
+ * printBill — shares the receipt as a .txt file via the Web Share API.
  *
  * How it works:
  *   1. Formats the bill into a plain-text receipt string (58mm-friendly,
  *      monospace-compatible columns).
- *   2. Calls navigator.share({ text }) — opens the OS share sheet.
- *   3. User picks iPrint (com.frogtosea.iprint) from the sheet.
- *   4. iPrint receives the text, displays it in its print preview, and
- *      the user taps Print inside iPrint to send it to the thermal printer.
+ *   2. Wraps the text in an in-memory File named "Bill-<no>.txt"
+ *      (type: text/plain) — never written to disk.
+ *   3. Calls navigator.share({ files: [file] }) — opens the OS share sheet
+ *      with an actual file attachment (ACTION_SEND + file Uri), not just
+ *      inline text.
+ *   4. User picks iPrint (com.frogtosea.iprint) from the sheet.
+ *   5. iPrint receives the .txt file, shows its print preview, and the
+ *      user taps Print inside iPrint to send it to the thermal printer.
  *
- * Why text not PDF/image:
- *   iPrint explicitly accepts ACTION_SEND / text/plain shares. Sharing text
- *   lands directly in iPrint's print screen — no extra steps inside the app.
+ * Why a .txt file and not inline text:
+ *   Some share targets, including iPrint's file-based print flow, only
+ *   register as a share target for file attachments (ACTION_SEND with a
+ *   file Uri) and don't pick up shares that only carry EXTRA_TEXT. Sharing
+ *   a real .txt file ensures iPrint shows up in the share sheet and opens
+ *   directly into its print preview.
  *
- * navigator.share({ text }) is supported on:
- *   - Chrome on Android (all modern versions)
- *   - Safari on iOS 12.1+
- *   - NOT supported on most desktop browsers (falls back to clipboard copy)
+ * navigator.share({ files }) is supported on:
+ *   - Chrome on Android (modern versions)
+ *   - Safari on iOS 15+
+ *   - NOT supported on most desktop browsers — falls back to a plain-text
+ *     share (EXTRA_TEXT only), then clipboard copy.
  *
- * Nothing is saved/downloaded to the device — the text only exists in
+ * Nothing is saved/downloaded to the device — the file only exists in
  * memory for the duration of the share call.
  *
  * Returns a Promise. Wire with an async onClick — see BillDetailPage.
@@ -125,26 +133,45 @@ function buildReceiptText(bill, items) {
 // ---------------------------------------------------------------------------
 
 /**
- * printBill — formats the receipt as plain text and opens the OS share sheet.
- * The user picks iPrint from the sheet; iPrint shows a print preview and
- * sends it to the paired thermal printer.
+ * printBill — builds the receipt as an in-memory .txt file and opens the
+ * OS share sheet so it can be sent to iPrint as a file attachment (not just
+ * inline text). Nothing is saved/downloaded to disk — the File object only
+ * exists in memory for the duration of the share call.
  *
- * Nothing is saved/downloaded — the text is only held in memory for the
- * duration of the share call.
- *
- * On desktop browsers that don't support navigator.share, falls back to
- * copying the receipt text to the clipboard and showing an alert.
+ * Some share targets (like iPrint's file-based print flow) only pick up
+ * shares that include an actual file (ACTION_SEND with a file Uri), not
+ * shares that only carry EXTRA_TEXT. So we prefer sharing a real .txt File
+ * first, and fall back to plain text / clipboard if file sharing isn't
+ * supported.
  *
  * Always returns a Promise.
  */
 export async function printBill(bill, items) {
-  const text = buildReceiptText(bill, items);
+  const text     = buildReceiptText(bill, items);
+  const fileName = `Bill-${billNo(bill)}.txt`;
+  const title    = `Bill ${billNo(bill)} – Stellar Global Supplies`;
 
+  // Preferred path: share an actual .txt file
+  if (navigator.canShare) {
+    try {
+      const file = new File([text], fileName, { type: 'text/plain' });
+
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title,
+        });
+        return;
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') throw err; // user dismissed share sheet
+      console.error('.txt file share failed, falling back to text share:', err);
+    }
+  }
+
+  // Fallback: plain-text share (EXTRA_TEXT, no file attached)
   if (navigator.share) {
-    await navigator.share({
-      text,
-      title: `Bill ${billNo(bill)} – Stellar Global Supplies`,
-    });
+    await navigator.share({ text, title });
     return;
   }
 
