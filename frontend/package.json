@@ -9,7 +9,8 @@
     "react-router-dom": "^6.21.0",
     "react-scripts": "5.0.1",
     "react-hot-toast": "^2.4.1",
-    "lucide-react": "^0.303.0"
+    "lucide-react": "^0.303.0",
+    "html2canvas": "^1.4.1"
   },
   "scripts": {
     "start": "react-scripts start",
