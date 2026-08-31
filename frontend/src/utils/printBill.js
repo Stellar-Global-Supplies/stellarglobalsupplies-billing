@@ -93,17 +93,23 @@ function buildReceiptText(bill, items) {
   if (bill.customer_phone) lines.push('Ph: ' + bill.customer_phone);
   lines.push(divider());
 
-  // Items header  (#  Item           Qty   Amt)
-  lines.push(pad('#', 2) + pad('Item', 16) + pad('Qty', 5, true) + pad('Amt', 9, true));
+  // Items header
+  lines.push(pad('#', 3) + 'Item');
   lines.push(divider());
 
-  // Item rows
+  // Item rows — name on its own line, then "qty x rate ... amt" below it
+  // so Rate fits cleanly within the 32-char thermal width.
   items.forEach((item, i) => {
-    const num  = pad(i + 1, 2);
-    const name = pad(item.name + (item.unit ? ` (${item.unit})` : ''), 16);
-    const qty  = pad(item.qty, 5, true);
-    const amt  = pad(Number(item.amount).toFixed(2), 9, true);
-    lines.push(num + name + qty + amt);
+    const num    = pad(i + 1, 2) + ' ';
+    const name   = item.name + (item.unit ? ` (${item.unit})` : '');
+    lines.push(num + name);
+
+    const rate   = Number(item.rate);
+    const qtyStr = `${item.qty} x ${rate.toFixed(2)}`;
+    const amtStr = Number(item.amount).toFixed(2);
+    const width  = COL_WIDTH - 3; // account for the 3-space indent below
+    const left   = qtyStr.slice(0, width - amtStr.length - 1).padEnd(width - amtStr.length);
+    lines.push('   ' + left + amtStr);
   });
 
   lines.push(divider());
