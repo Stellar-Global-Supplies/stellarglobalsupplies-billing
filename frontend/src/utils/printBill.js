@@ -178,17 +178,16 @@ function isAndroid() {
 }
 
 /**
- * printBill — main entry point. Launches the Bluetooth Print app directly
- * on Android via the deep-link. We do NOT auto-fallback on a timer:
- * Android/Chrome commonly shows its own "Open in Bluetooth Print?"
- * confirmation before switching apps, which needs a user tap and doesn't
- * reliably flip document.hidden within a short window — a timer-based
- * fallback races that dialog and can end up firing the old browser
- * print dialog on top of it, which looked exactly like the original bug
- * (defaulting to the OS print dialog instead of opening the app).
+ * printBill — sends a formatted receipt to the "Bluetooth Print" Android
+ * app. Same strategy as the reference implementation: build the deep-link
+ * URL and set window.location.href synchronously inside the click handler.
+ * No timers, no fallback race, no <a> tag — just a direct call, exactly
+ * like the working reference app.
  *
- * If the app truly isn't installed, use printBillViaBrowser() instead
- * (wired to a manual "trouble printing?" link in the UI).
+ * IMPORTANT: call this directly from a synchronous onClick handler (not
+ * after an `await`) — Chrome on Android ties permission to navigate to
+ * custom URL schemes to the click's "user activation", which expires once
+ * you cross an async gap.
  */
 export function printBill(bill, items) {
   if (!isAndroid()) {
@@ -198,16 +197,15 @@ export function printBill(bill, items) {
     return;
   }
 
-  const responseUrl = `${window.location.origin}/api/print-bill?id=${encodeURIComponent(bill.id)}`;
-  const btUrl = `my.bluetoothprint.scheme://${responseUrl}`;
+  const apiUrl = `${window.location.origin}/api/print-bill?id=${bill.id}`;
+  const btUrl  = `my.bluetoothprint.scheme://${apiUrl}`;
   window.location.href = btUrl;
 }
 
 /**
- * printBillViaBrowser — explicit manual fallback for when the Bluetooth
- * Print app isn't installed (or the deep-link didn't work for some other
- * reason). Wire this to a small secondary "trouble printing?" link next
- * to the main Print button — never call it automatically.
+ * printBillViaBrowser — manual fallback for when the Bluetooth Print app
+ * isn't installed. Wire this to a small secondary "trouble printing?"
+ * link next to the main Print button — never call it automatically.
  */
 export function printBillViaBrowser(bill, items) {
   printBillFallbackHtml(bill, items);
