@@ -38,11 +38,15 @@ export default function BillDetailPage() {
     setSharing(true);
     try {
       await printBill(bill, items);
-      toast.success('Pick WePrint from the share sheet to print.');
+      // Only show toast on mobile where share sheet was opened —
+      // desktop fallback (clipboard) already shows an alert.
+      if (navigator.share) {
+        toast.success('Pick iPrint from the share sheet to print.');
+      }
     } catch (err) {
-      if (err?.name === 'AbortError') return; // user dismissed share sheet — not an error
+      if (err?.name === 'AbortError') return; // user dismissed share sheet
       console.error('Print error:', err);
-      toast.error('Could not open share sheet. Make sure you\'re on a mobile browser.');
+      toast.error('Could not open share sheet. Try on a mobile browser.');
     } finally {
       setSharing(false);
     }
@@ -90,7 +94,7 @@ export default function BillDetailPage() {
                 <rect x="6" y="14" width="12" height="8"/>
               </svg>
             )}
-            {sharing ? 'Preparing…' : 'Print'}
+            {sharing ? 'Opening…' : 'Print'}
           </button>
         </div>
       </div>
